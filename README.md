@@ -508,7 +508,7 @@ A practical reproduction path is:
 
 Transformer checkpoints and other large supporting artefacts are stored outside GitHub.
 
-**Google Drive:** `[ADD PUBLIC GOOGLE DRIVE LINK HERE]`
+**Google Drive:** https://drive.google.com/drive/folders/1HGqJvGvTxvqKUopWmZzX0PrsqXXjD5DW?usp=drive_link
 
 Planned large-file contents include:
 
