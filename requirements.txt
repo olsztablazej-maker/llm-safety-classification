@@ -1,0 +1,20 @@
+# Core data and evaluation
+numpy
+pandas
+scikit-learn
+matplotlib
+openpyxl
+
+# NLP / transformer experiments
+datasets
+sentence-transformers
+torch
+transformers
+
+# Frontier-model API collection
+openai
+anthropic
+google-genai
+
+# Notebook environment
+jupyter
