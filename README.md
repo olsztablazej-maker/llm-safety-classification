@@ -1,6 +1,6 @@
 
 
-[# llm-safety-classification
+# llm-safety-classification
 # Context-Aware Safety Classification of LLM Outputs
 
 **Evaluating Generalisation from Historical to Frontier Models**
