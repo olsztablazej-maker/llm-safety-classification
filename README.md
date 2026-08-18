@@ -1,5 +1,3 @@
-
-
 # llm-safety-classification
 # Context-Aware Safety Classification of LLM Outputs
 
@@ -16,8 +14,10 @@ An MSc research project investigating whether lightweight safety classifiers tra
 > **Central finding:** the best PKU-SafeRLHF classifier achieved **Macro-F1 = 0.7847** in-distribution, but fell to **0.3270** when transferred zero-shot to 1,014 contemporary frontier-model responses.
 >
 > The failure was highly asymmetric: **Safe F1 increased to 0.9306**, while **Borderline F1 fell to 0.0504** and **Unsafe F1 to 0.0000**. Strong benchmark performance therefore did **not** translate into reliable detection of risk-bearing frontier outputs.
+>
+> A secondary robustness check on **600 separately reserved Unsafe PKU-SafeRLHF responses** produced **Unsafe recall = 0.8383** and **Risk-bearing recall = 0.9450**. This indicates that the frontier failure was not simply a general inability to recognise overt historical Unsafe content.
 
-This repository contains the notebooks, collected frontier responses, adjudicated reference labels, and annotation rubric used for the dissertation.
+This repository contains the notebooks, collected frontier responses, adjudicated reference labels, annotation rubric, result figures, and reproduction information used for the dissertation.
 
 **Choose your path:** [Research questions](#research-questions) | [Results at a glance](#results-at-a-glance) | [Experiment map](#experiment-map) | [Annotation](#human-annotation) | [Repository guide](#repository-guide) | [Reproduction](#reproduction)
 
@@ -37,6 +37,7 @@ This repository contains the notebooks, collected frontier responses, adjudicate
 - [Frontier evaluation dataset](#frontier-evaluation-dataset)
 - [Human annotation](#human-annotation)
 - [Historical-to-frontier generalisation](#historical-to-frontier-generalisation)
+- [Secondary Unsafe stress test](#secondary-unsafe-stress-test)
 - [Borderline failure analysis](#borderline-failure-analysis)
 - [Repository guide](#repository-guide)
 - [Quick start](#quick-start)
@@ -91,7 +92,15 @@ A secondary binary analysis combining Borderline and Unsafe into a single **Risk
 - Macro-F1: **0.5007**
 - Risk-bearing recall: **0.0442**
 
-This indicates that the transfer failure is not explained solely by the small Unsafe class.
+Because the frontier set contained only four Unsafe responses, a separate historical Unsafe stress test was also conducted on **600 independently reserved PKU-SafeRLHF Unsafe examples**:
+
+- Predicted Unsafe: **503 / 600 (83.83%)**
+- Predicted Borderline: **64 / 600 (10.67%)**
+- Predicted Safe: **33 / 600 (5.50%)**
+- Strict Unsafe recall: **0.8383**
+- Risk-bearing recall (Borderline or Unsafe): **0.9450**
+
+This additional check supports the interpretation that the frontier transfer failure is not explained simply by a general inability to recognise overt Unsafe content.
 
 ---
 
@@ -109,7 +118,10 @@ This indicates that the transfer failure is not explained solely by the small Un
 4. **Strong historical benchmark performance does not guarantee frontier robustness.**  
    The best classifier retained excellent recognition of Safe outputs but failed to transfer its risk-bearing decision boundary.
 
-5. **Contemporary safety failures are often subtle rather than overt.**  
+5. **The frontier failure is not simply an inability to recognise overt Unsafe content.**  
+   On 600 separately reserved historical Unsafe responses, strict Unsafe recall was 0.8383 and Risk-bearing recall was 0.9450.
+
+6. **Contemporary safety failures are often subtle rather than overt.**  
    Many Borderline cases involved omissions, weak escalation, risky detail, late caveats, or unjustified certainty rather than explicit harmful language.
 
 ---
@@ -152,6 +164,8 @@ Held-out test distribution:
 - Borderline: **302**
 - Unsafe: **650**
 
+An additional **600 Unsafe responses** were separately reserved outside the main 10,000-example sample for a secondary Unsafe robustness stress test. These examples were not used in the main training, validation, or standard PKU test evaluation.
+
 PKU-SafeRLHF itself is not redistributed in this repository. Users should obtain the source dataset from its original provider.
 
 ### Frontier evaluation data
@@ -177,6 +191,11 @@ Each prompt was submitted to four frontier models:
 - DeepSeek
 
 A total of **1,020 requests** were attempted. Six Gemini requests returned HTTP 503 errors, leaving **1,014 valid responses** for annotation and final evaluation.
+
+The frozen frontier files used in the dissertation are stored at the repository root:
+
+- [`frontier_model_responses_raw.csv`](frontier_model_responses_raw.csv) — raw frontier collection output
+- [`frontier_adjudicated_reference_labels.csv`](frontier_adjudicated_reference_labels.csv) — final adjudicated evaluation labels
 
 ---
 
@@ -206,7 +225,13 @@ flowchart TD
 
     P --> Q["Per-class + per-model analysis"]
     Q --> R["Borderline failure analysis"]
+
+    A --> S["600 separately reserved Unsafe PKU responses"]
+    O --> T["Secondary Unsafe stress test"]
+    S --> T
 ```
+
+The secondary Unsafe stress test is an additional robustness analysis rather than a new numbered experiment.
 
 ---
 
@@ -290,8 +315,8 @@ The dataset is intentionally not presented as a universal deployment distributio
 
 Repository files:
 
-- [`data/frontier_model_responses_raw.csv`](data/frontier_model_responses_raw.csv) — raw frontier collection output
-- [`data/frontier_adjudicated_reference_labels.csv`](data/frontier_adjudicated_reference_labels.csv) — final adjudicated evaluation labels
+- [`frontier_model_responses_raw.csv`](frontier_model_responses_raw.csv) — raw frontier collection output
+- [`frontier_adjudicated_reference_labels.csv`](frontier_adjudicated_reference_labels.csv) — final adjudicated evaluation labels
 
 ---
 
@@ -360,6 +385,32 @@ The same pattern appears across all four model families, making a single-provide
 
 The classifier therefore retained strong recognition of the dominant Safe style while systematically mapping risk-bearing frontier outputs back into Safe.
 
+A secondary binary Safe-versus-Risk-bearing analysis produced **Macro-F1 = 0.5007** and **Risk-bearing recall = 0.0442**, showing that the transfer problem is not dependent only on the four Unsafe frontier examples.
+
+---
+
+## Secondary Unsafe stress test
+
+Because the frontier evaluation set contained only **four adjudicated Unsafe responses**, a separate single-class robustness analysis was conducted using **600 Unsafe PKU-SafeRLHF responses** that had been deliberately reserved outside the main 10,000-example experimental sample.
+
+The same selected context-aware BERT classifier was applied without retraining.
+
+| Prediction | Count | Share |
+|---|---:|---:|
+| Unsafe | 503 | 83.83% |
+| Borderline | 64 | 10.67% |
+| Safe | 33 | 5.50% |
+| **Total** | **600** | **100%** |
+
+Key metrics:
+
+- **Strict Unsafe recall: 0.8383**
+- **Risk-bearing recall (Borderline or Unsafe): 0.9450**
+
+Because the stress-test dataset contains only true Unsafe examples, recall is the most directly interpretable metric. The result shows that the classifier retained strong sensitivity to overt historical Unsafe responses: only 5.5% were mapped to Safe.
+
+This strengthens, but does not by itself prove, the distribution-shift interpretation of Experiment 10. The classifier was capable of recognising Unsafe material from the historical distribution, while its ability to detect contemporary risk-bearing frontier responses — particularly Borderline cases — degraded substantially.
+
 ---
 
 ## Borderline failure analysis
@@ -388,27 +439,38 @@ This heterogeneity helps explain why a classifier trained on historical safety d
 llm-safety-classification/
 │
 ├── README.md
+├── requirements.txt
+├── frontier_model_responses_raw.csv
+├── frontier_adjudicated_reference_labels.csv
 │
 ├── notebooks/
 │   ├── Diss1_PKU_Experiments.ipynb
 │   ├── Diss2_Frontier_Collection.ipynb
 │   └── Diss3_Frontier_Evaluation.ipynb
 │
-├── data/
-│   ├── frontier_model_responses_raw.csv
-│   └── frontier_adjudicated_reference_labels.csv
+├── annotation/
+│   └── annotation_rubric.docx
 │
-└── annotation/
-    └── annotation_rubric.docx
+├── models/
+│   └── README.md
+│
+└── results/
+    └── figures/
+        ├── borderline_by_model.png
+        ├── borderline_failure_patterns.png
+        ├── dataset_collection_summary.png
+        ├── layer_probing_plot.png
+        └── pku_vs_frontier_f1.png
 ```
 
 ### Notebook roles
 
 #### `Diss1_PKU_Experiments.ipynb`
 
-Contains Experiments 1–9:
+Contains Experiments 1–9 and the PKU data-preparation pipeline:
 
 - PKU-SafeRLHF preprocessing and sampling
+- creation of the separately reserved Unsafe stress-test set
 - majority baseline
 - TF-IDF Logistic Regression
 - TF-IDF SVM
@@ -446,6 +508,8 @@ Contains the external evaluation pipeline:
 - binary Safe vs Risk-bearing analysis
 - Borderline failure-pattern analysis
 
+The final dissertation also reports the secondary 600-example Unsafe stress test using the same saved context-aware BERT checkpoint.
+
 ---
 
 ## Quick start
@@ -475,7 +539,7 @@ macOS / Linux:
 source .venv/bin/activate
 ```
 
-Install dependencies once `requirements.txt` is added:
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -496,10 +560,11 @@ The notebooks were developed using GPU-backed environments for transformer fine-
 A practical reproduction path is:
 
 1. Obtain PKU-SafeRLHF from the original source.
-2. Run `notebooks/Diss1_PKU_Experiments.ipynb` to reconstruct the PKU sample, baselines, transformer experiments, and layer probe.
+2. Run `notebooks/Diss1_PKU_Experiments.ipynb` to reconstruct the PKU sample, the separately reserved Unsafe set, baselines, transformer experiments, and layer probe.
 3. Use `notebooks/Diss2_Frontier_Collection.ipynb` only if re-collecting frontier responses. Provider outputs may differ over time because models and APIs change.
-4. Use the repository's adjudicated reference labels for the frozen frontier evaluation set.
+4. Use `frontier_model_responses_raw.csv` and `frontier_adjudicated_reference_labels.csv` for the frozen frontier evaluation set used in the dissertation.
 5. Run `notebooks/Diss3_Frontier_Evaluation.ipynb` with the saved BERT checkpoint to reproduce Experiment 10 and the annotation/generalisation analysis.
+6. The secondary Unsafe stress test uses the separately reserved 600-example PKU Unsafe set and the same `bert_context_aware.pt` checkpoint without retraining.
 
 > [!NOTE]
 > Frontier APIs are dynamic. Re-running the collection notebook at a later date may not reproduce the exact July 2026 responses. The frozen response CSV and adjudicated reference labels are therefore included to preserve the evaluation set used in the dissertation.
@@ -508,19 +573,22 @@ A practical reproduction path is:
 
 ## Model weights and large files
 
-Transformer checkpoints and other large supporting artefacts are stored outside GitHub.
+Transformer checkpoints and other large supporting artefacts are stored outside GitHub because they exceed normal GitHub file-size limits.
 
-**Google Drive:** https://drive.google.com/drive/folders/1HGqJvGvTxvqKUopWmZzX0PrsqXXjD5DW?usp=drive_link
+**Google Drive:**  
+https://drive.google.com/drive/folders/1HGqJvGvTxvqKUopWmZzX0PrsqXXjD5DW?usp=drive_link
 
-Planned large-file contents include:
+Large-file contents include:
 
 - response-only DistilBERT checkpoint
 - context-aware DistilBERT checkpoint
 - response-only BERT checkpoint
 - context-aware BERT checkpoint used for Experiment 10
-- any additional saved model artefacts required for dissertation submission
+- separately reserved PKU Unsafe stress-test data and associated supporting artefacts
 
-The Drive folder should be configured as **Anyone with the link → Viewer**.
+See [`models/README.md`](models/README.md) for checkpoint roles.
+
+The Drive folder should be configured as **Anyone with the link → Viewer** for assessment access.
 
 ---
 
@@ -529,7 +597,7 @@ The Drive folder should be configured as **Anyone with the link → Viewer**.
 The findings should be interpreted with the following constraints:
 
 - The frontier set contains **255 original prompts and 1,014 valid responses**, not a complete representation of real-world deployment traffic.
-- Only **4 frontier responses were labelled Unsafe**, making Unsafe F1 statistically unstable.
+- Only **4 frontier responses were labelled Unsafe**, making frontier Unsafe F1 statistically unstable. The separate 600-example historical Unsafe stress test partly addresses whether the classifier can recognise overt Unsafe content, but it does not replace the need for a larger contemporary Unsafe sample.
 - Human agreement was moderate (**κ = 0.4370**) and final disagreements were adjudicated against the rubric.
 - **119 responses were truncated**, which was associated with lower annotation agreement.
 - Transformer configurations were evaluated once on a single held-out split rather than across multiple random seeds.
@@ -552,7 +620,7 @@ This repository accompanies the MSc dissertation:
 
 The repository is intended to provide an auditable record of the experimental pipeline and the artefacts required to understand and reproduce the reported results.
 
-The dissertation manuscript and repository may receive final formatting or documentation updates before submission. Core reported experiments and evaluation results are treated as frozen unless a documented correction is required.
+Core reported experiments and evaluation results are treated as frozen unless a documented correction is required.
 
 ---
 
@@ -572,4 +640,3 @@ Context-Aware Safety Classification of LLM Outputs:
 Evaluating Generalisation from Historical to Frontier Models.
 MSc Dissertation, Queen Mary University of London.
 ```
-](https://github.com/olsztablazej-maker/llm-safety-classification)
